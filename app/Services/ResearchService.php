@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 
 class ResearchService
 {
@@ -185,14 +185,18 @@ Rules:
 - Return ONLY the JSON
 PROMPT;
 
-        $response = Http::withHeaders([
-            'x-api-key'         => config('services.claude.api_key'),
-            'anthropic-version' => '2023-06-01',
-            'content-type'      => 'application/json',
-        ])->timeout(20)->post($this->claudeUrl, [
-            'model'      => $this->claudeModel,
-            'max_tokens' => 1000,
-            'messages'   => [['role' => 'user', 'content' => $prompt]],
+                $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . config('services.openrouter.api_key'),
+            'Content-Type'  => 'application/json',
+            'HTTP-Referer'  => config('app.url', 'https://example.com'),
+            'X-Title'       => 'Ark Historical Simulation',
+        ])->timeout(20)->post('https://openrouter.ai/api/v1/chat/completions', [
+            'model'       => 'deepseek/deepseek-chat:free',
+            'messages'    => [
+                ['role' => 'user', 'content' => $prompt],
+            ],
+            'max_tokens'  => 1000,
+            'temperature' => 0.7,
         ]);
 
         if (!$response->successful()) {
@@ -203,7 +207,7 @@ PROMPT;
             ];
         }
 
-        $text   = preg_replace('/```json|```/', '', $response->json('content.0.text'));
+                $text = preg_replace('/```json|```/', '', $response->json('choices.0.message.content'));
         $parsed = json_decode(trim($text), true);
 
         return $parsed ?? [

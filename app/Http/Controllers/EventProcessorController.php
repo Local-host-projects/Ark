@@ -24,10 +24,10 @@ class EventProcessorController extends Controller
      *
      * Called by cron-job.org every 1 minute.
      * Picks up the oldest pending task and executes exactly ONE step.
-     * Each step is small enough to finish within 25 seconds.
      */
     public function handle(Request $request): JsonResponse
     {
+    
         $secret = config('services.cron_secret');
         $provided = $request->bearerToken()
             ?? $request->query('token')
@@ -37,11 +37,9 @@ class EventProcessorController extends Controller
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        // Find one pending task (oldest first)
         $task = Task::pending()->first();
 
         if (!$task) {
-            // No tasks — just fire any due events for running stories
             $fired = $this->fireDueEvents();
             return response()->json([
                 'status'     => 'tick_complete',
@@ -97,13 +95,12 @@ class EventProcessorController extends Controller
         $story->update(['status' => 'ingesting']);
 
         $rawContent = $this->gatherSources($story);
-        $extracted = $this->callClaudeForIngestion($rawContent);
+        $extracted = $this->callOpenRouterForIngestion($rawContent);
 
         if (!$extracted) {
-            throw new \RuntimeException('Claude ingestion failed or timed out');
+            throw new \RuntimeException('OpenRouter ingestion failed or timed out');
         }
 
-        // Save timeline + period on story
         $story->update([
             'status'       => 'ingesting',
             'timeline'     => $extracted['timeline'] ?? [],
@@ -111,7 +108,6 @@ class EventProcessorController extends Controller
             'period_end'   => $extracted['period_end'] ?? null,
         ]);
 
-        // Create tasks for each agent (capped at 7)
         $agents = array_slice($extracted['agents'] ?? [], 0, 7);
         foreach ($agents as $index => $agentData) {
             Task::create([
@@ -121,7 +117,6 @@ class EventProcessorController extends Controller
             ]);
         }
 
-        // After all agents, schedule events
         Task::create([
             'story_id' => $story->id,
             'type'     => 'schedule_events',
@@ -162,15 +157,12 @@ class EventProcessorController extends Controller
     {
         $story->update(['status' => 'scheduling']);
 
-        // Assign voices
         app(VoiceAssignmentService::class)->assignToStoryAgents($story);
 
-        // Map agent names to IDs
         $agentNameToId = Agent::where('story_id', $story->id)
             ->pluck('id', 'name')
             ->toArray();
 
-        // Resolve involved_agent_ids in timeline
         $timeline = collect($story->timeline ?? [])->map(function ($event) use ($agentNameToId) {
             $event['involved_agent_ids'] = collect($event['involved_agent_names'] ?? [])
                 ->map(fn($name) => $agentNameToId[$name] ?? null)
@@ -183,10 +175,8 @@ class EventProcessorController extends Controller
 
         $story->update(['timeline' => $timeline]);
 
-        // Schedule times
         (new \App\Jobs\ScheduleStoryEventsJob($story))->handle();
 
-        // Create tasks for each event
         $timeline = $story->fresh()->timeline ?? [];
         usort($timeline, fn($a, $b) => $a['sequence'] <=> $b['sequence']);
 
@@ -212,10 +202,8 @@ class EventProcessorController extends Controller
         $event = $story->getEvent((int) $sequence);
         if (!$event) throw new \RuntimeException("Event {$sequence} not found");
 
-        // Check if event is due
         $scheduledAt = isset($event['scheduled_at']) ? Carbon::parse($event['scheduled_at']) : null;
         if ($scheduledAt && $scheduledAt->isAfter(now())) {
-            // Not due yet — re-queue this task for later
             Task::create([
                 'story_id' => $story->id,
                 'type'     => 'fire_event',
@@ -224,14 +212,11 @@ class EventProcessorController extends Controller
             Log::info('Event not due yet, re-queued', [
                 'story_id' => $story->id,
                 'sequence' => $sequence,
-                'due_in'   => $scheduledAt->diffForHumans(),
             ]);
             return;
         }
 
-        // Check sequential order
         if ($sequence > $story->current_sequence + 1) {
-            // Previous event not fired yet — re-queue
             Task::create([
                 'story_id' => $story->id,
                 'type'     => 'fire_event',
@@ -253,7 +238,7 @@ class EventProcessorController extends Controller
         ]);
     }
 
-    // ─── FIRE DUE EVENTS (for stories already running, no tasks needed) ──────
+    // ─── FIRE DUE EVENTS ───────────────────────────────────────────────────────
 
     private function fireDueEvents(): int
     {
@@ -299,7 +284,7 @@ class EventProcessorController extends Controller
         return $fired;
     }
 
-    // ─── STATUS ENDPOINT ─────────────────────────────────────────────────────
+    // ─── STATUS ENDPOINT ───────────────────────────────────────────────────────
 
     public function status(Request $request): JsonResponse
     {
@@ -310,9 +295,7 @@ class EventProcessorController extends Controller
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        $stories = Story::withCount(['agents', 'posts'])
-            ->latest()
-            ->get();
+        $stories = Story::withCount(['agents', 'posts'])->latest()->get();
 
         $tasks = Task::whereIn('story_id', $stories->pluck('id'))
             ->orderBy('created_at')
@@ -345,35 +328,9 @@ class EventProcessorController extends Controller
         ]);
     }
 
-    // ─── HELPERS ─────────────────────────────────────────────────────────────
+    // ─── OPENROUTER INGESTION ────────────────────────────────────────────────
 
-    private function gatherSources(Story $story): string
-    {
-        $sources = $story->sources ?? [];
-        $parts = [];
-
-        foreach ($sources as $source) {
-            $parts[] = match($source['type']) {
-                'url' => $this->fetchUrl($source['content']),
-                default => $source['content'] ?? '',
-            };
-        }
-
-        return implode("\n\n---\n\n", array_filter($parts));
-    }
-
-    private function fetchUrl(string $url): string
-    {
-        try {
-            $html = Http::timeout(15)->get($url)->body();
-            $text = strip_tags($html);
-            return trim(substr(preg_replace('/\s+/', ' ', $text), 0, 20000));
-        } catch (\Throwable $e) {
-            return "Could not fetch: {$url}";
-        }
-    }
-
-    private function callClaudeForIngestion(string $rawContent): ?array
+    private function callOpenRouterForIngestion(string $rawContent): ?array
     {
         $prompt = <<<PROMPT
 You are a dramatic story architect and historian.
@@ -441,34 +398,83 @@ PROMPT;
 
         try {
             $response = Http::withHeaders([
-                'x-api-key'         => config('services.claude.api_key'),
-                'anthropic-version' => '2023-06-01',
-                'content-type'      => 'application/json',
-            ])->timeout(25)->post('https://api.anthropic.com/v1/messages', [
-                'model'      => 'claude-sonnet-4-20250514',
-                'max_tokens' => 4000,
-                'system'     => 'You are a historical simulation architect and dramatic storyteller. Return only valid JSON.',
-                'messages'   => [['role' => 'user', 'content' => $prompt]],
+                'Authorization'     => 'Bearer ' . config('services.openrouter.api_key'),
+                'Content-Type'      => 'application/json',
+                'HTTP-Referer'      => config('app.url', 'https://example.com'),
+                'X-Title'           => 'Ark Historical Simulation',
+            ])->timeout(25)->post('https://openrouter.ai/api/v1/chat/completions', [
+                'model'       => 'deepseek/deepseek-chat:free',
+                'messages'    => [
+                    [
+                        'role'    => 'system',
+                        'content' => 'You are a historical simulation architect and dramatic storyteller. Return only valid JSON.',
+                    ],
+                    [
+                        'role'    => 'user',
+                        'content' => $prompt,
+                    ],
+                ],
+                'max_tokens'  => 4000,
+                'temperature' => 0.7,
             ]);
 
             if (!$response->successful()) {
-                Log::warning('Claude error', ['status' => $response->status(), 'body' => $response->body()]);
+                Log::warning('OpenRouter error', [
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ]);
                 return null;
             }
 
-            $text = preg_replace('/```json|```/', '', $response->json('content.0.text'));
+            $result = $response->json();
+            $text = $result['choices'][0]['message']['content'] ?? null;
+
+            if (!$text) {
+                Log::warning('OpenRouter empty response', ['result' => $result]);
+                return null;
+            }
+
+            $text = preg_replace('/```json|```/', '', $text);
             $parsed = json_decode(trim($text), true);
 
             if (!$parsed || !isset($parsed['agents']) || !isset($parsed['timeline'])) {
-                Log::warning('Claude invalid JSON', ['text' => $text]);
+                Log::warning('OpenRouter invalid JSON', ['text' => $text]);
                 return null;
             }
 
             return $parsed;
 
         } catch (\Throwable $e) {
-            Log::warning('Claude timeout', ['error' => $e->getMessage()]);
+            Log::warning('OpenRouter timeout or error', ['error' => $e->getMessage()]);
             return null;
+        }
+    }
+
+    // ─── HELPERS ─────────────────────────────────────────────────────────────
+
+    private function gatherSources(Story $story): string
+    {
+        $sources = $story->sources ?? [];
+        $parts = [];
+
+        foreach ($sources as $source) {
+            $parts[] = match($source['type']) {
+                'url' => $this->fetchUrl($source['content']),
+                default => $source['content'] ?? '',
+            };
+        }
+
+        return implode("\n\n---\n\n", array_filter($parts));
+    }
+
+    private function fetchUrl(string $url): string
+    {
+        try {
+            $html = Http::timeout(15)->get($url)->body();
+            $text = strip_tags($html);
+            return trim(substr(preg_replace('/\s+/', ' ', $text), 0, 20000));
+        } catch (\Throwable $e) {
+            return "Could not fetch: {$url}";
         }
     }
 

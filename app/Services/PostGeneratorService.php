@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Agent;
 use App\Models\Post;
+use App\Models\Agent;
 use App\Models\Story;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class PostGeneratorService
 {
@@ -167,7 +167,7 @@ Generate 1 post. Return JSON only:
 Only post what you would know on {$event['date']}. Return ONLY the JSON.
 PROMPT;
 
-        $response = $this->callClaude(null, $prompt, 400);
+        $response = $this->callOpenRouter(null, $prompt, 400);
         $parsed   = $this->parseJson($response);
         $created  = [];
 
@@ -287,7 +287,7 @@ Return JSON only: { "reply_agent_ids": [id1, id2] }
 Empty array if none should reply.
 PROMPT;
 
-        $response = $this->callClaude(
+        $response = $this->callOpenRouter(
             'You are a decision engine. Return only JSON.',
             $prompt,
             80
@@ -317,7 +317,7 @@ Max 2 sentences. In character. Return JSON only:
 { "content": "reply text", "tone": "supportive|hostile|questioning|dismissive|alarmed|informational" }
 PROMPT;
 
-        $response = $this->callClaude(null, $prompt, 150);
+        $response = $this->callOpenRouter(null, $prompt, 150);
 
         try {
             $parsed = $this->parseJson($response);
@@ -360,29 +360,47 @@ PROMPT;
                "Goals: {$goals}. Concerns: {$concerns}.";
     }
 
-    private function callClaude(?string $system, string $prompt, int $maxTokens): string
+        // Replace callClaude() entirely:
+    private function callOpenRouter(?string $system, string $prompt, int $maxTokens): string
     {
-        $payload = [
-            'model'      => $this->claudeModel,
-            'max_tokens' => $maxTokens,
-            'messages'   => [['role' => 'user', 'content' => $prompt]],
-        ];
+        $messages = [];
 
         if ($system) {
-            $payload['system'] = $system;
+            $messages[] = ['role' => 'system', 'content' => $system];
         }
 
-        $response = Http::withHeaders([
-            'x-api-key'         => config('services.claude.api_key'),
-            'anthropic-version' => '2023-06-01',
-            'content-type'      => 'application/json',
-        ])->timeout(30)->post($this->claudeUrl, $payload);
+        $messages[] = ['role' => 'user', 'content' => $prompt];
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Bearer ' . config('services.openrouter.api_key'),
+            'Content-Type'  => 'application/json',
+            'HTTP-Referer'  => config('app.url', 'https://example.com'),
+            'X-Title'       => 'Ark Historical Simulation',
+        ])->timeout(25)->post('https://openrouter.ai/api/v1/chat/completions', [
+            'model'       => 'deepseek/deepseek-chat:free',
+            'messages'    => $messages,
+            'max_tokens'  => $maxTokens,
+            'temperature' => 0.7,
+        ]);
 
         if (!$response->successful()) {
-            throw new \RuntimeException('Claude API error: ' . $response->body());
+            throw new \RuntimeException('OpenRouter API error: ' . $response->body());
         }
 
-        return $response->json('content.0.text') ?? '';
+        return $response->json('choices.0.message.content') ?? '';
+    }
+
+    // Update parseJson to handle the response format (same logic, just rename):
+    private function parseJson(string $text): array
+    {
+        $text = preg_replace('/```json|```/', '', $text);
+        $parsed = json_decode(trim($text), true);
+
+        if (!$parsed) {
+            throw new \RuntimeException('JSON parse failed: ' . $text);
+        }
+
+        return $parsed;
     }
 
     private function parseJson(string $text): array
