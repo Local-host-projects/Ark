@@ -55,16 +55,19 @@
   @else
     <!-- Agents Grid -->
     <section class="agents-grid">
-      @forelse($agents as $index => $agent)
+      @php
+        $gradients = [
+          ['from' => '#1D9BF0', 'to' => '#0EA5E9'],
+          ['from' => '#F59E0B', 'to' => '#D97706'],
+          ['from' => '#10B981', 'to' => '#059669'],
+          ['from' => '#8B5CF6', 'to' => '#7C3AED'],
+          ['from' => '#EC4899', 'to' => '#DB2777'],
+          ['from' => '#06B6D4', 'to' => '#0891B2'],
+        ];
+      @endphp
+
+      @foreach($agents as $index => $agent)
         @php
-          $gradients = [
-            ['from' => '#1D9BF0', 'to' => '#0EA5E9'],
-            ['from' => '#F59E0B', 'to' => '#D97706'],
-            ['from' => '#10B981', 'to' => '#059669'],
-            ['from' => '#8B5CF6', 'to' => '#7C3AED'],
-            ['from' => '#EC4899', 'to' => '#DB2777'],
-            ['from' => '#06B6D4', 'to' => '#0891B2'],
-          ];
           $grad = $gradients[$index % count($gradients)];
         @endphp
         <article class="agent-card">
@@ -113,7 +116,7 @@
             </div>
           </div>
         </article>
-      @endforelse
+      @endforeach
     </section>
   @endif
 </div>

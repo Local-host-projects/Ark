@@ -5,7 +5,6 @@
 @section('content')
 
 <div class="timeline-page">
-  <!-- Arc Header -->
   <section class="timeline-arc">
     <div class="timeline-arc-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -60,17 +59,20 @@
     <section class="timeline-track">
       <div class="timeline-line-bg"></div>
 
-      @forelse($timeline as $index => $event)
+      @php
+        $beatColors = [
+          'exposition'    => ['bg' => '#1D9BF0', 'soft' => 'rgba(29,155,240,0.08)', 'text' => '#1D9BF0'],
+          'inciting'      => ['bg' => '#F59E0B', 'soft' => 'rgba(245,158,11,0.08)', 'text' => '#D97706'],
+          'rising_action' => ['bg' => '#3B82F6', 'soft' => 'rgba(59,130,246,0.08)', 'text' => '#2563EB'],
+          'crisis'        => ['bg' => '#EF4444', 'soft' => 'rgba(239,68,68,0.08)', 'text' => '#DC2626'],
+          'climax'        => ['bg' => '#10B981', 'soft' => 'rgba(16,185,129,0.08)', 'text' => '#059669'],
+        ];
+      @endphp
+
+      @foreach($timeline as $index => $event)
         @php
           $isUnlocked = ($event['sequence'] ?? 0) <= $story->current_sequence;
           $beat = $event['beat'] ?? 'exposition';
-          $beatColors = [
-            'exposition' => ['bg' => '#1D9BF0', 'soft' => 'rgba(29,155,240,0.08)', 'text' => '#1D9BF0'],
-            'inciting' => ['bg' => '#F59E0B', 'soft' => 'rgba(245,158,11,0.08)', 'text' => '#D97706'],
-            'rising' => ['bg' => '#3B82F6', 'soft' => 'rgba(59,130,246,0.08)', 'text' => '#2563EB'],
-            'crisis' => ['bg' => '#EF4444', 'soft' => 'rgba(239,68,68,0.08)', 'text' => '#DC2626'],
-            'climax' => ['bg' => '#10B981', 'soft' => 'rgba(16,185,129,0.08)', 'text' => '#059669'],
-          ];
           $colors = $beatColors[$beat] ?? $beatColors['exposition'];
         @endphp
 
@@ -130,7 +132,7 @@
               </div>
             </div>
 
-            <p class="timeline-description">{{ $event['description'] }}</p>
+            <p class="timeline-description">{{ $event['description'] ?? '' }}</p>
 
             <div class="timeline-footer">
               <span class="timeline-emotion">
@@ -161,7 +163,7 @@
             </div>
           </div>
         </article>
-      @endforelse
+      @endforeach
     </section>
   @endif
 </div>
