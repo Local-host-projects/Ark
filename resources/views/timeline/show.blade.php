@@ -60,7 +60,7 @@
     <section class="timeline-track">
       <div class="timeline-line-bg"></div>
 
-      @foreach($timeline as $index => $event)
+      @forelse($timeline as $index => $event)
         @php
           $isUnlocked = ($event['sequence'] ?? 0) <= $story->current_sequence;
           $beat = $event['beat'] ?? 'exposition';
@@ -161,7 +161,7 @@
             </div>
           </div>
         </article>
-      @endforeach
+      @endforelse
     </section>
   @endif
 </div>

@@ -55,7 +55,7 @@
   @else
     <!-- Agents Grid -->
     <section class="agents-grid">
-      @foreach($agents as $index => $agent)
+      @forelse($agents as $index => $agent)
         @php
           $gradients = [
             ['from' => '#1D9BF0', 'to' => '#0EA5E9'],
@@ -113,7 +113,7 @@
             </div>
           </div>
         </article>
-      @endforeach
+      @endforelse
     </section>
   @endif
 </div>
