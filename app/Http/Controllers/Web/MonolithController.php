@@ -38,7 +38,7 @@ class MonolithController extends Controller
         ]);
     }
 
-    public function createStory(Request $request): RedirectResponse
+        public function createStory(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'title'       => ['required', 'string', 'max:255'],
@@ -56,8 +56,14 @@ class MonolithController extends Controller
             'status'      => 'pending',
         ]);
 
+        // Create the first task for the cron worker
+        \App\Models\Task::create([
+            'story_id' => $story->id,
+            'type'     => 'ingest_timeline',
+        ]);
+
         return redirect()->route('stories.index')
-            ->with('status', 'Story queued. The first posts will appear in 1–5 minutes.');
+            ->with('status', 'Story queued. Timeline will be generated in ~1 minute.');
     }
 
     public function deleteStory(Request $request, Story $story): RedirectResponse

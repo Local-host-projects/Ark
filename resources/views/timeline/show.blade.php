@@ -19,113 +19,151 @@
     </div>
   </section>
 
-  <!-- Timeline Track -->
-  <section class="timeline-track">
-    <div class="timeline-line-bg"></div>
-
-    @foreach($timeline as $index => $event)
-      @php
-        $isUnlocked = ($event['sequence'] ?? 0) <= $story->current_sequence;
-        $beat = $event['beat'] ?? 'exposition';
-        $beatColors = [
-          'exposition' => ['bg' => '#1D9BF0', 'soft' => 'rgba(29,155,240,0.08)', 'text' => '#1D9BF0'],
-          'inciting' => ['bg' => '#F59E0B', 'soft' => 'rgba(245,158,11,0.08)', 'text' => '#D97706'],
-          'rising' => ['bg' => '#3B82F6', 'soft' => 'rgba(59,130,246,0.08)', 'text' => '#2563EB'],
-          'crisis' => ['bg' => '#EF4444', 'soft' => 'rgba(239,68,68,0.08)', 'text' => '#DC2626'],
-          'climax' => ['bg' => '#10B981', 'soft' => 'rgba(16,185,129,0.08)', 'text' => '#059669'],
-        ];
-        $colors = $beatColors[$beat] ?? $beatColors['exposition'];
-      @endphp
-
-      <article class="timeline-event {{ $isUnlocked ? 'unlocked' : 'locked' }}" data-beat="{{ $beat }}">
-        <!-- Node -->
-        <div class="timeline-node">
-          <div class="timeline-node-ring" style="border-color: {{ $colors['bg'] }}33;"></div>
-          <div class="timeline-node-dot" style="background: {{ $isUnlocked ? $colors['bg'] : 'var(--border-strong)' }}; box-shadow: {{ $isUnlocked ? '0 0 0 4px '.$colors['soft'] : 'none' }};">
-            @if($isUnlocked)
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            @else
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-            @endif
-          </div>
+  @if(empty($timeline) || count($timeline) === 0)
+    <!-- Loading State -->
+    <div class="timeline-loading">
+      <div class="timeline-loading-visual">
+        <div class="timeline-loading-node">
+          <div class="timeline-loading-ring"></div>
+          <div class="timeline-loading-dot"></div>
         </div>
+        <div class="timeline-loading-line">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="timeline-loading-node secondary">
+          <div class="timeline-loading-ring"></div>
+          <div class="timeline-loading-dot"></div>
+        </div>
+        <div class="timeline-loading-line">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="timeline-loading-node tertiary">
+          <div class="timeline-loading-ring"></div>
+          <div class="timeline-loading-dot"></div>
+        </div>
+      </div>
+      <div class="timeline-loading-text">
+        <h3>Generating timeline...</h3>
+        <p>ARK is crafting the dramatic arc for this story. Events will appear here as soon as they're ready.</p>
+        <div class="timeline-loading-progress">
+          <div class="timeline-loading-track">
+            <div class="timeline-loading-fill"></div>
+          </div>
+          <span>Building narrative structure</span>
+        </div>
+      </div>
+    </div>
+  @else
+    <!-- Timeline Track -->
+    <section class="timeline-track">
+      <div class="timeline-line-bg"></div>
 
-        <!-- Card -->
-        <div class="timeline-card">
-          <div class="timeline-card-accent" style="background: {{ $colors['bg'] }};"></div>
-          
-          <div class="timeline-card-header">
-            <div class="timeline-card-title-wrap">
-              <h3>{{ $event['title'] }}</h3>
-              <span class="timeline-beat" style="background: {{ $colors['soft'] }}; color: {{ $colors['text'] }}; border: 1px solid {{ $colors['bg'] }}22;">
-                <span class="beat-dot" style="background: {{ $colors['bg'] }};"></span>
-                {{ str_replace('_',' ', $beat) }}
-              </span>
+      @foreach($timeline as $index => $event)
+        @php
+          $isUnlocked = ($event['sequence'] ?? 0) <= $story->current_sequence;
+          $beat = $event['beat'] ?? 'exposition';
+          $beatColors = [
+            'exposition' => ['bg' => '#1D9BF0', 'soft' => 'rgba(29,155,240,0.08)', 'text' => '#1D9BF0'],
+            'inciting' => ['bg' => '#F59E0B', 'soft' => 'rgba(245,158,11,0.08)', 'text' => '#D97706'],
+            'rising' => ['bg' => '#3B82F6', 'soft' => 'rgba(59,130,246,0.08)', 'text' => '#2563EB'],
+            'crisis' => ['bg' => '#EF4444', 'soft' => 'rgba(239,68,68,0.08)', 'text' => '#DC2626'],
+            'climax' => ['bg' => '#10B981', 'soft' => 'rgba(16,185,129,0.08)', 'text' => '#059669'],
+          ];
+          $colors = $beatColors[$beat] ?? $beatColors['exposition'];
+        @endphp
+
+        <article class="timeline-event {{ $isUnlocked ? 'unlocked' : 'locked' }}" data-beat="{{ $beat }}">
+          <!-- Node -->
+          <div class="timeline-node">
+            <div class="timeline-node-ring" style="border-color: {{ $colors['bg'] }}33;"></div>
+            <div class="timeline-node-dot" style="background: {{ $isUnlocked ? $colors['bg'] : 'var(--border-strong)' }}; box-shadow: {{ $isUnlocked ? '0 0 0 4px '.$colors['soft'] : 'none' }};">
               @if($isUnlocked)
-                <span class="timeline-unlocked-badge">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              @else
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              @endif
+            </div>
+          </div>
+
+          <!-- Card -->
+          <div class="timeline-card">
+            <div class="timeline-card-accent" style="background: {{ $colors['bg'] }};"></div>
+            
+            <div class="timeline-card-header">
+              <div class="timeline-card-title-wrap">
+                <h3>{{ $event['title'] }}</h3>
+                <span class="timeline-beat" style="background: {{ $colors['soft'] }}; color: {{ $colors['text'] }}; border: 1px solid {{ $colors['bg'] }}22;">
+                  <span class="beat-dot" style="background: {{ $colors['bg'] }};"></span>
+                  {{ str_replace('_',' ', $beat) }}
+                </span>
+                @if($isUnlocked)
+                  <span class="timeline-unlocked-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Unlocked
+                  </span>
+                @endif
+              </div>
+              <div class="timeline-card-meta">
+                <span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
                   </svg>
-                  Unlocked
+                  {{ $event['date'] ?? 'Unknown date' }}
+                </span>
+                <span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  {{ $event['location']['name'] ?? 'Unknown place' }}
+                </span>
+              </div>
+            </div>
+
+            <p class="timeline-description">{{ $event['description'] }}</p>
+
+            <div class="timeline-footer">
+              <span class="timeline-emotion">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                Emotion: {{ $event['emotional_register'] ?? 'steady' }}
+              </span>
+              @if(!empty($event['cliffhanger']))
+                <span class="timeline-cliffhanger">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  {{ $event['cliffhanger'] }}
+                </span>
+              @endif
+              @if(!empty($event['scheduled_at']))
+                <span class="timeline-countdown" data-countdown="{{ $event['scheduled_at'] }}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span>Loading...</span>
                 </span>
               @endif
             </div>
-            <div class="timeline-card-meta">
-              <span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                {{ $event['date'] ?? 'Unknown date' }}
-              </span>
-              <span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-                {{ $event['location']['name'] ?? 'Unknown place' }}
-              </span>
-            </div>
           </div>
-
-          <p class="timeline-description">{{ $event['description'] }}</p>
-
-          <div class="timeline-footer">
-            <span class="timeline-emotion">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-              Emotion: {{ $event['emotional_register'] ?? 'steady' }}
-            </span>
-            @if(!empty($event['cliffhanger']))
-              <span class="timeline-cliffhanger">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                  <line x1="12" y1="17" x2="12.01" y2="17"/>
-                </svg>
-                {{ $event['cliffhanger'] }}
-              </span>
-            @endif
-            @if(!empty($event['scheduled_at']))
-              <span class="timeline-countdown" data-countdown="{{ $event['scheduled_at'] }}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                <span>Loading...</span>
-              </span>
-            @endif
-          </div>
-        </div>
-      </article>
-    @endforeach
-  </section>
+        </article>
+      @endforeach
+    </section>
+  @endif
 </div>
 
 <style>
@@ -199,7 +237,213 @@
     max-width: 50ch;
   }
 
-  /* Track */
+  /* ── Loading State ─────────────────────────────────────────── */
+  .timeline-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    text-align: center;
+    gap: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+  }
+  .timeline-loading::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    left: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(29,155,240,0.04) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .timeline-loading-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .timeline-loading-node {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .timeline-loading-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    animation: loadingRing 2s ease-in-out infinite;
+  }
+  .timeline-loading-node.secondary .timeline-loading-ring {
+    animation-delay: 0.4s;
+    border-color: var(--accent);
+    opacity: 0.3;
+  }
+  .timeline-loading-node.tertiary .timeline-loading-ring {
+    animation-delay: 0.8s;
+    border-color: var(--green);
+    opacity: 0.2;
+  }
+
+  @keyframes loadingRing {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+  }
+
+  .timeline-loading-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    animation: loadingDot 1.5s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(29,155,240,0.3);
+  }
+  .timeline-loading-node.secondary .timeline-loading-dot {
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    animation-delay: 0.3s;
+    opacity: 0.6;
+  }
+  .timeline-loading-node.tertiary .timeline-loading-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--green);
+    animation-delay: 0.6s;
+    opacity: 0.4;
+  }
+
+  @keyframes loadingDot {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.3); opacity: 1; }
+  }
+
+  .timeline-loading-line {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    height: 48px;
+    justify-content: center;
+    align-items: center;
+  }
+  .timeline-loading-line span {
+    width: 2px;
+    background: var(--border);
+    border-radius: 999px;
+    animation: loadingLine 1.2s ease-in-out infinite;
+  }
+  .timeline-loading-line span:nth-child(1) { height: 8px; animation-delay: 0s; }
+  .timeline-loading-line span:nth-child(2) { height: 16px; animation-delay: 0.1s; }
+  .timeline-loading-line span:nth-child(3) { height: 24px; animation-delay: 0.2s; }
+  .timeline-loading-line span:nth-child(4) { height: 12px; animation-delay: 0.3s; }
+  .timeline-loading-line span:nth-child(5) { height: 20px; animation-delay: 0.4s; }
+  .timeline-loading-line span:nth-child(6) { height: 14px; animation-delay: 0.5s; }
+  .timeline-loading-line span:nth-child(7) { height: 22px; animation-delay: 0.6s; }
+  .timeline-loading-line span:nth-child(8) { height: 10px; animation-delay: 0.7s; }
+  .timeline-loading-line span:nth-child(9) { height: 18px; animation-delay: 0.8s; }
+  .timeline-loading-line span:nth-child(10) { height: 6px; animation-delay: 0.9s; }
+
+  @keyframes loadingLine {
+    0%, 100% { transform: scaleY(0.5); opacity: 0.3; }
+    50% { transform: scaleY(1); opacity: 1; }
+  }
+
+  .timeline-loading-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+  .timeline-loading-text h3 {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+  .timeline-loading-text p {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 40ch;
+  }
+
+  .timeline-loading-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .timeline-loading-track {
+    width: 100%;
+    height: 6px;
+    background: var(--bg-secondary);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .timeline-loading-fill {
+    height: 100%;
+    width: 30%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    border-radius: 999px;
+    animation: loadingProgress 2s ease-in-out infinite;
+    position: relative;
+  }
+  .timeline-loading-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    border-radius: 0 999px 999px 0;
+    animation: loadingShimmer 1.5s ease-in-out infinite;
+  }
+
+  @keyframes loadingProgress {
+    0% { width: 15%; }
+    50% { width: 65%; }
+    100% { width: 15%; }
+  }
+
+  @keyframes loadingShimmer {
+    0% { transform: translateX(-40px); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: translateX(40px); opacity: 0; }
+  }
+
+  .timeline-loading-progress span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Track ── */
   .timeline-track {
     position: relative;
     padding-left: 24px;
@@ -474,6 +718,43 @@
       font-size: 18px;
     }
     
+    /* Loading mobile */
+    .timeline-loading {
+      padding: 40px 20px;
+    }
+    
+    .timeline-loading-node {
+      width: 40px;
+      height: 40px;
+    }
+    
+    .timeline-loading-dot {
+      width: 14px;
+      height: 14px;
+    }
+    
+    .timeline-loading-node.secondary .timeline-loading-dot {
+      width: 10px;
+      height: 10px;
+    }
+    
+    .timeline-loading-node.tertiary .timeline-loading-dot {
+      width: 8px;
+      height: 8px;
+    }
+    
+    .timeline-loading-line {
+      height: 36px;
+    }
+    
+    .timeline-loading-text h3 {
+      font-size: 18px;
+    }
+    
+    .timeline-loading-text p {
+      font-size: 13px;
+    }
+    
     .timeline-track {
       padding-left: 16px;
     }
@@ -553,6 +834,14 @@
     .timeline-arc-icon {
       width: 44px;
       height: 44px;
+    }
+    
+    .timeline-loading {
+      padding: 32px 16px;
+    }
+    
+    .timeline-loading-text h3 {
+      font-size: 16px;
     }
     
     .timeline-track {

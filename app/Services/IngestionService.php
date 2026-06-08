@@ -173,7 +173,7 @@ PROMPT;
             'content-type'      => 'application/json',
         ])->timeout(60)->post($this->claudeUrl, [
             'model'      => $this->claudeModel,
-            'max_tokens' => 6000,
+            'max_tokens' => 3500,
             'system'     => 'You are a historical simulation architect and dramatic storyteller. Return only valid JSON.',
             'messages'   => [['role' => 'user', 'content' => $prompt]],
         ]);

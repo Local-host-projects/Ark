@@ -52,12 +52,9 @@ class Agent extends Model
         return in_array($tool, $this->tools ?? ['text']);
     }
 
-    /**
-     * Append to rolling memory — keep last 50 entries.
-     */
     public function appendMemory(string $entry): void
     {
-        $memory   = $this->memory ?? [];
+        $memory = $this->memory ?? [];
         $memory[] = ['at' => now()->toISOString(), 'entry' => $entry];
 
         if (count($memory) > 50) {

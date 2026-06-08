@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Task;
 use App\Models\Story;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class StoryController extends Controller
 {
-    /**
-     * List all stories for the authenticated user.
-     */
     public function index(Request $request): JsonResponse
     {
         $stories = $request->user()
@@ -22,10 +20,6 @@ class StoryController extends Controller
         return response()->json($stories);
     }
 
-    /**
-     * Create a new story.
-     * Returns immediately. The cron worker handles ingestion + first event.
-     */
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -44,15 +38,18 @@ class StoryController extends Controller
             'status'      => 'pending',
         ]);
 
+        // Create the first task — cron will pick this up
+        Task::create([
+            'story_id' => $story->id,
+            'type'     => 'ingest_timeline',
+        ]);
+
         return response()->json([
-            'message' => 'Story queued. It will appear in the feed within 1–5 minutes.',
+            'message' => 'Story queued. Timeline will be generated in ~1 minute.',
             'story'   => $story,
         ], 202);
     }
 
-    /**
-     * Get a single story with its full timeline and agents.
-     */
     public function show(Request $request, Story $story): JsonResponse
     {
         $this->gate($request, $story);
@@ -63,9 +60,6 @@ class StoryController extends Controller
         );
     }
 
-    /**
-     * Delete a story and all its data.
-     */
     public function destroy(Request $request, Story $story): JsonResponse
     {
         $this->gate($request, $story);

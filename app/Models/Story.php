@@ -45,26 +45,22 @@ class Story extends Model
         return $this->hasMany(Space::class);
     }
 
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
     public function isOwned(int $userId): bool
     {
         return $this->user_id === $userId;
     }
 
-    // ─── Timeline helpers ─────────────────────────────────────────────────────
-
-    /**
-     * Get a single event from the timeline JSON by sequence number.
-     */
     public function getEvent(int $sequence): ?array
     {
         return collect($this->timeline ?? [])
             ->firstWhere('sequence', $sequence);
     }
 
-    /**
-     * Get all events up to and including the current sequence.
-     * These are the events that have fired so far.
-     */
     public function firedEvents(): array
     {
         return collect($this->timeline ?? [])
@@ -73,9 +69,6 @@ class Story extends Model
             ->toArray();
     }
 
-    /**
-     * Get the next unfired event.
-     */
     public function nextEvent(): ?array
     {
         return collect($this->timeline ?? [])
@@ -84,17 +77,11 @@ class Story extends Model
             ->first();
     }
 
-    /**
-     * Total number of events in the timeline.
-     */
     public function totalEvents(): int
     {
         return count($this->timeline ?? []);
     }
 
-    /**
-     * Progress through the timeline as a percentage.
-     */
     public function progressPercent(): float
     {
         $total = $this->totalEvents();
@@ -102,9 +89,6 @@ class Story extends Model
         return round(($this->current_sequence / $total) * 100, 1);
     }
 
-    /**
-     * Advance the story's current sequence marker.
-     */
     public function advanceTo(int $sequence): void
     {
         if ($sequence > $this->current_sequence) {
